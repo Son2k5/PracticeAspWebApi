@@ -1,13 +1,12 @@
 using System;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Identity;
+using System.Text;
 using Microsoft.IdentityModel.Tokens;
-using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using MyApiProject.Data;
-using MyApiProject.Models;
-
+using MyApiProject.Repository.Interfaces;
+using MyApiProject.Dtos;
+using MyApiProject.Repository;
 namespace MyApiProject
 {
     public class Program
@@ -22,6 +21,27 @@ namespace MyApiProject
                 builder.Configuration.GetConnectionString("DefaultConnection"),
                 ServerVersion.AutoDetect(builder.Configuration.GetConnectionString("DefaultConnection")))
             );
+            // ============== REPOSITORY DI ================
+            builder.Services.AddScoped<IUserRepository, UserRepository>();
+            builder.Services.AddScoped<IProductRepository, ProductRepository>();
+
+            //================= CONFIG JWT ================
+            builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+            .AddJwtBearer(options =>
+            {
+                options.TokenValidationParameters = new TokenValidationParameters
+                {
+                    ValidateIssuer = true,
+                    ValidateAudience = true,
+                    ValidateLifetime = true,
+                    ValidateIssuerSigningKey = true,
+                    ValidIssuer = builder.Configuration["Jwt:Issuer"],
+                    ValidAudience = builder.Configuration["Jwt:Audience"],
+                    IssuerSigningKey = new SymmetricSecurityKey(
+                        Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"])
+                    )
+                };
+            });
 
             // ========= CONFIG SWAGGER ===========
             builder.Services.AddEndpointsApiExplorer();
